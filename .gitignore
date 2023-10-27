@@ -1,5 +1,6 @@
 uploads
 uploads/*
+src/config/*.ts
 
 node_modules
 dist
