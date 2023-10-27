@@ -1,0 +1,32 @@
+import { DataSource } from "typeorm";
+import { User } from "../entity/User";
+import { UserRole } from "../entity/UserRole";
+import { Company } from "../entity/Company";
+import { Expenditure } from "../entity/Expenditure";
+import { Location } from "../entity/Location";
+import { ExpenditureImage } from "../entity/ExpenditureImage";
+import { Category } from "../entity/Category";
+import { ExpenditureItem } from "../entity/ExpenditureItem";
+import { Product } from "../entity/Product";
+
+const MysqlDataSource = new DataSource({
+  type: "mysql",
+  host: "localhost",
+  port: 3306,
+  username: "",
+  password: "",
+  database: "",
+  synchronize: true,
+  logging: true,
+  entities: [Category, Company, Expenditure, ExpenditureImage, ExpenditureItem, Location, Product, User, UserRole],
+  subscribers: [],
+  migrations: [],
+});
+
+MysqlDataSource.initialize()
+  .then(() => {
+    console.log("Data Source has been initialized!");
+  })
+  .catch((error) => console.log(error));
+
+export default MysqlDataSource;
