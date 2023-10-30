@@ -111,4 +111,91 @@ router.get("/stats", auth, async (req: Request<{}, {}, {}, StatsQuery>, res: Res
   return res.json(userExpenditureItems);
 });
 
+/**
+ * POST METHOD
+ * Create new category
+ */
+router.post("/", auth, async (req, res) => {
+  const { name, parentId } = req.body;
+  const user = res.locals.loggedUser;
+  //TODO: to be implemented user defined categories
+
+  if (!name || parentId === undefined) {
+    return res.status(400).json({ message: "Invalid request!" });
+  }
+
+  const category = new Category();
+  category.name = name;
+
+  if (parentId !== 0) {
+    const parentCategory = await MysqlDataSource.getRepository(Category).findOneBy({ id: parentId });
+    if (parentCategory) {
+      category.parent = parentCategory;
+    }
+  }
+
+  await MysqlDataSource.getRepository(Category).save(category);
+
+  return res.status(201).json({ message: "Category created!" });
+});
+
+/**
+ * PUT METHOD
+ * Update an existing category
+ */
+router.put("/:categoryId", auth, async (req, res) => {
+  const { name, parentId } = req.body;
+  const categoryId = req.params.categoryId;
+
+  if (!categoryId || !name || parentId === undefined) {
+    return res.status(400).json({ message: "Invalid request!" });
+  }
+
+  const categoryRepository = MysqlDataSource.getRepository(Category);
+  const category = await categoryRepository.findOne({
+    where: { id: parseInt(categoryId) },
+    relations: { parent: true },
+  });
+
+  if (!category) {
+    return res.status(400).json({ message: "Something went wrong. Category not found!" });
+  }
+
+  category.name = name;
+  if (parentId !== 0) {
+    const parentCategory = await categoryRepository.findOneBy({ id: parentId });
+    if (!parentCategory) {
+      return res.status(400).json({ message: "Something went wrong. Parent category not found!" });
+    }
+    category.parent = parentCategory;
+  } else {
+    category.parent = null;
+  }
+
+  await categoryRepository.save(category);
+
+  return res.status(201).json({ message: "Category updated!" });
+});
+
+/**
+ * DELETE METHOD
+ * Delete a category
+ */
+router.delete("/:categoryId", auth, async (req, res) => {
+  const categoryId = req.params.categoryId;
+  const categoryRepository = MysqlDataSource.getRepository(Category);
+
+  const category = await categoryRepository.findOneBy({ id: parseInt(categoryId) });
+  //TODO: to be implemented user defined categories
+  //right now deleting the base categories
+
+  if (!category) {
+    return res.status(400).json({ message: "Invalid request!" });
+  }
+
+  await categoryRepository.remove(category);
+
+  return res.status(204).json({ message: "Category removed!" });
+});
+
 export default router;

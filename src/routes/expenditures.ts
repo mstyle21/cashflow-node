@@ -223,7 +223,7 @@ router.post("/", auth, upload.array("images"), async (req, res) => {
     });
   }
 
-  return res.status(201).json({ message: "Expenditure successfully saved!" });
+  return res.status(201).json({ message: "Expenditure saved!" });
 });
 
 /**
@@ -327,7 +327,7 @@ router.put("/:expenditureId", auth, upload.array("images"), async (req, res) => 
     });
   }
 
-  return res.status(201).json({ message: "Expenditure successfully updated!" });
+  return res.status(201).json({ message: "Expenditure updated!" });
 });
 
 router.delete("/image/:imageId", auth, async (req, res) => {
@@ -356,7 +356,7 @@ router.delete("/image/:imageId", auth, async (req, res) => {
 
   await expenditureImageRepository.remove(expenditureImage);
 
-  return res.status(204).send("Done");
+  return res.status(204).json({ message: "Expenditure image deleted" });
 });
 
 export default router;
