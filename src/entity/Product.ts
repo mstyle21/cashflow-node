@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { ExpenditureItem } from "./ExpenditureItem";
 
 @Entity()
 export class Product {
@@ -8,6 +9,9 @@ export class Product {
   name: string;
   @Column({ type: "text" })
   description: string;
+  @JoinColumn()
+  @OneToMany(() => ExpenditureItem, (expenditureItem) => expenditureItem.product)
+  expenditureItems: ExpenditureItem[];
   @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP", select: false })
   created: Date;
   @Column({
