@@ -1,201 +1,23 @@
 import express from "express";
-import { Request, Response } from "express";
-import MysqlDataSource from "../config/data-source";
 import auth from "../middleware/auth";
-import { Category } from "../entity/Category";
-import { Equal, EqualOperator, FindOperator, IsNull, Like } from "typeorm";
-import { Expenditure } from "../entity/Expenditure";
-import { MONTHS, CURRENT_YEAR } from "../helpers/utils";
-import { ExpenditureItem } from "../entity/ExpenditureItem";
+import {
+  createCategory,
+  deleteCategory,
+  getAllCategories,
+  getCategoryStats,
+  updateCategory,
+} from "../controllers/category.controller";
 
 const router = express.Router();
 
-router.get("/", async (req: Request, res: Response) => {
-  const { organized } = req.query;
+router.get("/", getAllCategories);
 
-  const queryBuilder = MysqlDataSource.getRepository(Category).createQueryBuilder("category");
+router.get("/stats", auth, getCategoryStats);
 
-  queryBuilder.leftJoinAndSelect("category.parent", "parent");
+router.post("/", auth, createCategory);
 
-  if (organized && organized === "true") {
-    queryBuilder.leftJoinAndSelect("category.childs", "childs");
-  }
+router.put("/:categoryId", auth, updateCategory);
 
-  const categories = await queryBuilder.getMany();
-
-  return res.json(categories);
-});
-
-interface StatsQuery extends qs.ParsedQs {
-  type: "allTime" | "month" | "year";
-  month: string;
-  year: string;
-  category: string;
-}
-/**
- * Get statistics of category expenses
- */
-router.get("/stats", auth, async (req: Request<{}, {}, {}, StatsQuery>, res: Response) => {
-  const { type, month, year, category } = req.query;
-  const user = res.locals.loggedUser;
-
-  if (
-    !month ||
-    !year ||
-    !type ||
-    !MONTHS.includes(month) ||
-    parseInt(year) < 2020 ||
-    parseInt(year) > CURRENT_YEAR ||
-    !["allTime", "month", "year"].includes(type) ||
-    isNaN(parseInt(category))
-  ) {
-    return res.status(400).send("Invalid request");
-  }
-
-  const parsedMonth = MONTHS.indexOf(month) + 1 < 10 ? `0${MONTHS.indexOf(month) + 1}` : `${MONTHS.indexOf(month) + 1}`;
-
-  let where: {
-    expenditure: { user: { id: number }; purchaseDate?: FindOperator<string> };
-    category?: {
-      parent: {
-        id: number;
-      };
-    };
-  } = {
-    expenditure: {
-      user: {
-        id: user.id,
-      },
-    },
-  };
-
-  switch (type) {
-    default:
-    case "month":
-      where.expenditure.purchaseDate = Like(`${year}-${parsedMonth}-%`);
-      break;
-    case "year":
-      where.expenditure.purchaseDate = Like(`${year}-%`);
-      break;
-    case "allTime":
-      break;
-  }
-
-  if (parseInt(category) > 0) {
-    where.category = {
-      parent: {
-        id: parseInt(category),
-      },
-    };
-  }
-
-  const userExpenditureItems = await MysqlDataSource.manager.find(ExpenditureItem, {
-    where: where,
-    relations: {
-      category: {
-        parent: true,
-      },
-    },
-    select: {
-      category: {
-        id: true,
-        name: true,
-        parent: {
-          id: true,
-          name: true,
-        },
-      },
-    },
-  });
-
-  return res.json(userExpenditureItems);
-});
-
-/**
- * POST METHOD
- * Create new category
- */
-router.post("/", auth, async (req, res) => {
-  const { name, parentId } = req.body;
-  const user = res.locals.loggedUser;
-  //TODO: to be implemented user defined categories
-
-  if (!name || parentId === undefined) {
-    return res.status(400).json({ message: "Invalid request!" });
-  }
-
-  const category = new Category();
-  category.name = name;
-
-  if (parentId !== 0) {
-    const parentCategory = await MysqlDataSource.getRepository(Category).findOneBy({ id: parentId });
-    if (parentCategory) {
-      category.parent = parentCategory;
-    }
-  }
-
-  await MysqlDataSource.getRepository(Category).save(category);
-
-  return res.status(201).json({ message: "Category created!" });
-});
-
-/**
- * PUT METHOD
- * Update an existing category
- */
-router.put("/:categoryId", auth, async (req, res) => {
-  const { name, parentId } = req.body;
-  const categoryId = req.params.categoryId;
-
-  if (!categoryId || !name || parentId === undefined) {
-    return res.status(400).json({ message: "Invalid request!" });
-  }
-
-  const categoryRepository = MysqlDataSource.getRepository(Category);
-  const category = await categoryRepository.findOne({
-    where: { id: parseInt(categoryId) },
-    relations: { parent: true },
-  });
-
-  if (!category) {
-    return res.status(400).json({ message: "Something went wrong. Category not found!" });
-  }
-
-  category.name = name;
-  if (parentId !== 0) {
-    const parentCategory = await categoryRepository.findOneBy({ id: parentId });
-    if (!parentCategory) {
-      return res.status(400).json({ message: "Something went wrong. Parent category not found!" });
-    }
-    category.parent = parentCategory;
-  } else {
-    category.parent = null;
-  }
-
-  await categoryRepository.save(category);
-
-  return res.status(201).json({ message: "Category updated!" });
-});
-
-/**
- * DELETE METHOD
- * Delete a category
- */
-router.delete("/:categoryId", auth, async (req, res) => {
-  const categoryId = req.params.categoryId;
-  const categoryRepository = MysqlDataSource.getRepository(Category);
-
-  const category = await categoryRepository.findOneBy({ id: parseInt(categoryId) });
-  //TODO: to be implemented user defined categories
-  //right now deleting the base categories
-
-  if (!category) {
-    return res.status(400).json({ message: "Invalid request!" });
-  }
-
-  await categoryRepository.remove(category);
-
-  return res.status(204).json({ message: "Category removed!" });
-});
+router.delete("/:categoryId", auth, deleteCategory);
 
 export default router;

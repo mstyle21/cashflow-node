@@ -39,3 +39,15 @@ export function randomHash(length: number = 5): string {
 
   return hash;
 }
+
+export function paginatedResult(filteredItems: unknown[], totalItems: number, perPage: number) {
+  return {
+    items: filteredItems,
+    count: totalItems,
+    pages: Math.ceil(totalItems / perPage),
+  };
+}
+
+export function sleep(time: number = 1000) {
+  return new Promise((resolve) => setTimeout(resolve, time));
+}

@@ -1,15 +1,9 @@
 import express from "express";
-import { Request, Response } from "express";
-import MysqlDataSource from "../config/data-source";
 import auth from "../middleware/auth";
-import { Company } from "../entity/Company";
+import { getAllCompanies } from "../controllers/company.controller";
 
 const router = express.Router();
 
-router.get("/", auth, async (req: Request, res: Response) => {
-  const companies = await MysqlDataSource.manager.find(Company);
-
-  return res.json(companies);
-});
+router.get("/", auth, getAllCompanies);
 
 export default router;
