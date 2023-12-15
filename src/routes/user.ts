@@ -1,9 +1,9 @@
 import express from "express";
-import MysqlDataSource from "../config/data-source";
 import { User } from "../entity/User";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import MysqlDataSource from "../config/data-source";
 
 dotenv.config();
 
