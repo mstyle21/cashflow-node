@@ -1,31 +1,56 @@
 import { NextFunction, Request, Response } from "express";
 import MysqlDataSource from "../config/data-source";
 import { Category } from "../entity/Category";
-import { FindOptionsWhere, Like } from "typeorm";
+import { FindOptionsWhere, IsNull, Like } from "typeorm";
 import { ExpenditureItem } from "../entity/ExpenditureItem";
 import { MONTHS, CURRENT_YEAR } from "../utils";
 import { CategoryStatsQuery } from "../types";
+import { UserCategory } from "../entity/UserCategory";
+import { User } from "../entity/User";
 
 const categoryRepository = MysqlDataSource.getRepository(Category);
+const userCategoryRepository = MysqlDataSource.getRepository(UserCategory);
 const expenditureItemRepository = MysqlDataSource.getRepository(ExpenditureItem);
 
-export const getAllCategories = async (req: Request, res: Response, next: NextFunction) => {
-  const { organized } = req.query;
+export const getUserCategories = async (req: Request, res: Response, next: NextFunction) => {
+  const user: User = res.locals.loggedUser;
 
-  const queryBuilder = categoryRepository.createQueryBuilder("category");
+  let categories = await userCategoryRepository.find({
+    where: {
+      user: {
+        id: user.id,
+      },
+    },
+    relations: {
+      parent: true,
+      childs: {
+        parent: true,
+      },
+    },
+  });
 
-  queryBuilder.leftJoinAndSelect("category.parent", "parent");
+  if (categories.length === 0) {
+    copyBaseCategoriesToUser(user);
 
-  if (organized && organized === "true") {
-    queryBuilder.leftJoinAndSelect("category.childs", "childs");
+    categories = await userCategoryRepository.find({
+      where: {
+        user: {
+          id: user.id,
+        },
+      },
+      relations: {
+        parent: true,
+        childs: {
+          parent: true,
+        },
+      },
+    });
   }
-
-  const categories = await queryBuilder.getMany();
 
   return res.json(categories);
 };
 
-export const getCategoryStats = async (req: Request<{}, {}, {}, CategoryStatsQuery>, res: Response) => {
+export const getUserCategoryStats = async (req: Request<{}, {}, {}, CategoryStatsQuery>, res: Response) => {
   const { type, month, year, category } = req.query;
   const user = res.locals.loggedUser;
 
@@ -104,75 +129,114 @@ export const getCategoryStats = async (req: Request<{}, {}, {}, CategoryStatsQue
   return res.json(userExpenditureItems);
 };
 
-export const createCategory = async (req: Request, res: Response) => {
+export const createUserCategory = async (req: Request, res: Response, next: NextFunction) => {
   const { name, parentId } = req.body;
   const user = res.locals.loggedUser;
-  //TODO: to be implemented user defined categories
 
   if (!name || parentId === undefined) {
     return res.status(400).json({ message: "Invalid request!" });
   }
 
-  const category = new Category();
-  category.name = name;
+  const userCategory = new UserCategory();
+  userCategory.user = user;
+  userCategory.name = name;
 
   if (parentId !== 0) {
-    const parentCategory = await categoryRepository.findOneBy({ id: parentId });
+    const parentCategory = await userCategoryRepository.findOneBy({ id: parentId });
     if (parentCategory) {
-      category.parent = parentCategory;
+      userCategory.parent = parentCategory;
     }
   }
 
-  await categoryRepository.save(category);
+  await userCategoryRepository.save(userCategory);
 
   return res.status(201).json({ message: "Category created!" });
 };
 
-export const updateCategory = async (req: Request, res: Response) => {
+export const updateUserCategory = async (req: Request, res: Response) => {
   const { name, parentId } = req.body;
   const categoryId = req.params.categoryId;
+  const user = res.locals.loggedUser;
 
   if (!categoryId || !name || parentId === undefined) {
     return res.status(400).json({ message: "Invalid request!" });
   }
 
-  const category = await categoryRepository.findOne({
-    where: { id: parseInt(categoryId) },
-    relations: { parent: true },
+  const userCategory = await userCategoryRepository.findOne({
+    where: { id: parseInt(categoryId), user: { id: user.id } },
+    relations: { parent: true, user: true },
   });
 
-  if (!category) {
+  if (!userCategory) {
     return res.status(400).json({ message: "Something went wrong. Category not found!" });
   }
 
-  category.name = name;
+  userCategory.name = name;
+
   if (parentId !== 0) {
-    const parentCategory = await categoryRepository.findOneBy({ id: parentId });
+    const parentCategory = await userCategoryRepository.findOneBy({ id: parentId });
     if (!parentCategory) {
       return res.status(400).json({ message: "Something went wrong. Parent category not found!" });
     }
-    category.parent = parentCategory;
+    userCategory.parent = parentCategory;
   } else {
-    category.parent = null;
+    userCategory.parent = null;
   }
 
-  await categoryRepository.save(category);
+  await userCategoryRepository.save(userCategory);
 
   return res.status(201).json({ message: "Category updated!" });
 };
 
-export const deleteCategory = async (req: Request, res: Response) => {
+export const deleteUserCategory = async (req: Request, res: Response, next: NextFunction) => {
   const categoryId = req.params.categoryId;
+  const user = res.locals.loggedUser;
 
-  const category = await categoryRepository.findOneBy({ id: parseInt(categoryId) });
-  //TODO: to be implemented user defined categories
-  //right now deleting the base categories
+  const userCategory = await userCategoryRepository.findOne({
+    where: { id: parseInt(categoryId), user: { id: user.id } },
+    relations: { parent: true, user: true },
+  });
 
-  if (!category) {
-    return res.status(400).json({ message: "Invalid request!" });
+  if (!userCategory) {
+    return res.status(400).json({ message: "Something went wrong. Category not found!" });
   }
 
-  await categoryRepository.remove(category);
+  await userCategoryRepository.remove(userCategory);
 
   return res.status(204).json({ message: "Category removed!" });
+};
+
+const copyBaseCategoriesToUser = async (user: User) => {
+  const baseCategories = await categoryRepository.find({
+    where: {
+      parent: IsNull(),
+    },
+    relations: {
+      childs: true,
+    },
+  });
+
+  for (const baseCategory of baseCategories) {
+    const parentCategory = new UserCategory();
+
+    parentCategory.name = baseCategory.name;
+    parentCategory.keywords = parentCategory.keywords;
+    parentCategory.user = user;
+    parentCategory.childs = [];
+
+    if (baseCategory.childs) {
+      for (const childBaseCategory of baseCategory.childs) {
+        const childCategory = new UserCategory();
+
+        childCategory.name = childBaseCategory.name;
+        childCategory.keywords = childBaseCategory.keywords;
+        childCategory.user = user;
+        childCategory.parent = parentCategory;
+
+        parentCategory.childs.push(childCategory);
+      }
+    }
+
+    await userCategoryRepository.save(parentCategory);
+  }
 };

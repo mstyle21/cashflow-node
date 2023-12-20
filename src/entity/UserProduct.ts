@@ -1,18 +1,13 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity()
-export class BaseCategory {
+export class UserProduct {
   @PrimaryGeneratedColumn()
   id: number;
   @Column()
   name: string;
   @Column({ type: "longtext" })
   keywords: string;
-  @JoinColumn()
-  @ManyToOne(() => BaseCategory, (baseCategory) => baseCategory.id)
-  parent: BaseCategory | null;
-  @OneToMany(() => BaseCategory, (baseCategory) => baseCategory.parent)
-  childs?: BaseCategory[] | null;
   @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP", select: false })
   created: Date;
   @Column({

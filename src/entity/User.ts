@@ -14,12 +14,13 @@ export class User {
   @ManyToOne(() => UserRole)
   @JoinColumn()
   role: UserRole;
-  @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
+  @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP", select: false })
   created: Date;
   @Column({
     type: "timestamp",
     default: null,
     onUpdate: "CURRENT_TIMESTAMP",
+    select: false,
   })
   updated: Date | null;
 }

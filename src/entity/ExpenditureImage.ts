@@ -10,12 +10,13 @@ export class ExpenditureImage {
   expenditure: Expenditure;
   @Column({ length: 150 })
   path: string;
-  @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
+  @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP", select: false })
   created: Date;
   @Column({
     type: "timestamp",
     default: null,
     onUpdate: "CURRENT_TIMESTAMP",
+    select: false,
   })
   updated: Date | null;
 }

@@ -1,13 +1,15 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { ExpenditureQueue } from "./ExpenditureQueue";
 
 @Entity()
-export class BaseProduct {
+export class ExpenditureQueueImage {
   @PrimaryGeneratedColumn()
   id: number;
   @Column()
-  name: string;
-  @Column({ type: "longtext" })
-  keywords: string;
+  filename: string;
+  @JoinColumn()
+  @ManyToOne(() => ExpenditureQueue)
+  expenditureQueue: ExpenditureQueue;
   @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP", select: false })
   created: Date;
   @Column({

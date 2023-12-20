@@ -7,12 +7,15 @@ export class Company {
   id: number;
   @Column({ type: "text" })
   name: string;
-  @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
+  @Column({ type: "longtext" })
+  keywords: string;
+  @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP", select: false })
   created: Date;
   @Column({
     type: "timestamp",
     default: null,
     onUpdate: "CURRENT_TIMESTAMP",
+    select: false,
   })
   updated: Date | null;
 }

@@ -1,11 +1,11 @@
 import { mysqlCli } from ".";
-import { BaseCategory } from "../entity/BaseCategory";
+import { Category } from "../entity/Category";
 import { BASE_CATEGORIES } from "./data";
 
 export const seedBaseCategory = () => {
   console.log("Seeding base categories...");
 
-  const baseCategoryRepository = mysqlCli.getRepository(BaseCategory);
+  const baseCategoryRepository = mysqlCli.getRepository(Category);
 
   const seed = async () => {
     for (const baseCategory of BASE_CATEGORIES) {
@@ -14,7 +14,7 @@ export const seedBaseCategory = () => {
       });
 
       if (!parentCategory) {
-        const newBaseCategory = new BaseCategory();
+        const newBaseCategory = new Category();
 
         newBaseCategory.name = baseCategory.name;
         newBaseCategory.keywords = baseCategory.keywords;
@@ -25,7 +25,7 @@ export const seedBaseCategory = () => {
       for (const child of baseCategory.childs) {
         const childCategory = await baseCategoryRepository.findOneBy({ name: child.name });
         if (!childCategory) {
-          const childBaseCategory = new BaseCategory();
+          const childBaseCategory = new Category();
 
           childBaseCategory.name = child.name;
           childBaseCategory.keywords = child.keywords;

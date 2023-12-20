@@ -4,8 +4,8 @@ import { seedUserRole } from "./userRoles";
 import { UserRole } from "../entity/UserRole";
 import { seedUsers } from "./users";
 import { User } from "../entity/User";
-import { seedBaseCategory } from "./baseCategories";
-import { BaseCategory } from "../entity/BaseCategory";
+import { seedBaseCategory } from "./categories";
+import { Category } from "../entity/Category";
 
 dotenv.config();
 
@@ -16,7 +16,7 @@ export const mysqlCli = new DataSource({
   database: process.env.DB_DATABASE,
   username: process.env.DB_USERNAME,
   password: process.env.DB_PASSWORD,
-  entities: [UserRole, User, BaseCategory],
+  entities: [UserRole, User, Category],
 });
 
 const run = async () => {

@@ -14,7 +14,11 @@ if (process.env.JWT_SECRET_KEY) {
 }
 
 const verifyToken = async (req: Request, res: Response, next: NextFunction) => {
-  const token = req.body.token || req.query.token || req.headers["x-access-token"];
+  let token;
+
+  if (req.headers["authorization"]) {
+    token = req.headers["authorization"].split(" ")[1];
+  }
 
   if (!token) {
     return res.status(403).send("A token is required for authentication");
@@ -25,10 +29,10 @@ const verifyToken = async (req: Request, res: Response, next: NextFunction) => {
     payload = jwt.verify(token, jwtSecretKey) as JwtPayload;
     const nowUnixSeconds = Math.round(Number(new Date()) / 1000);
     if (!payload.exp || payload.exp < nowUnixSeconds) {
-      return res.status(400).send("Token expired!");
+      return res.status(401).send("Token expired!");
     }
   } catch (e: unknown) {
-    return res.status(400).send("Token expired!");
+    return res.status(401).send("Token expired!");
   }
 
   const user = await MysqlDataSource.manager.findOneBy(User, { id: payload.userId });

@@ -1,7 +1,8 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { User } from "./User";
 
 @Entity()
-export class Category {
+export class UserCategory {
   @PrimaryGeneratedColumn()
   id: number;
   @Column()
@@ -9,10 +10,13 @@ export class Category {
   @Column({ type: "longtext", nullable: true })
   keywords: string;
   @JoinColumn()
-  @ManyToOne(() => Category, (category) => category.id)
-  parent: Category | null;
-  @OneToMany(() => Category, (category) => category.parent)
-  childs?: Category[] | null;
+  @ManyToOne(() => User)
+  user: User;
+  @JoinColumn()
+  @ManyToOne(() => UserCategory, (userCategory) => userCategory.id)
+  parent: UserCategory | null;
+  @OneToMany(() => UserCategory, (userCategory) => userCategory.parent, { cascade: true })
+  childs?: UserCategory[] | null;
   @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP", select: false })
   created: Date;
   @Column({
