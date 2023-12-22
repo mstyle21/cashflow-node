@@ -4,7 +4,7 @@ import MysqlDataSource from "../config/data-source";
 import { User } from "../entity/User";
 import { JWTPayloadData } from "../types";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 
 dotenv.config();
 
@@ -30,6 +30,18 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
   });
 
   if (user && (await bcrypt.compare(password, user.password))) {
+    if (user.token) {
+      const payload = jwt.decode(user.token) as JwtPayload;
+      const nowUnixSeconds = Math.round(Number(new Date()) / 1000);
+
+      if (payload.exp && payload.exp > nowUnixSeconds) {
+        return res.json({
+          email: user.email,
+          token: user.token,
+        });
+      }
+    }
+
     const payload: JWTPayloadData = {
       time: Date(),
       userId: user.id,
