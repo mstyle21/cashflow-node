@@ -13,6 +13,9 @@ import { ExpenditureImage } from "../entity/ExpenditureImage";
 import { ExpenditureItem } from "../entity/ExpenditureItem";
 import { Product } from "../entity/Product";
 import { Location } from "../entity/Location";
+import { ExpenditureQueue } from "../entity/ExpenditureQueue";
+import { ExpenditureQueueImage } from "../entity/ExpenditureQueueImage";
+import { EXPENDITURES_FOLDER, EXPENDITURE_QUEUE_FOLDER } from "../config";
 
 const expenditureRepository = MysqlDataSource.getRepository(Expenditure);
 const expenditureItemRepository = MysqlDataSource.getRepository(ExpenditureItem);
@@ -21,8 +24,9 @@ const productRepository = MysqlDataSource.getRepository(Product);
 const categoryRepository = MysqlDataSource.getRepository(Category);
 const locationRepository = MysqlDataSource.getRepository(Location);
 const companyRepository = MysqlDataSource.getRepository(Company);
+const expenditureQueueRespository = MysqlDataSource.getRepository(ExpenditureQueue);
 
-export const getExpenditureStats = async (
+export const getUserExpenditureStats = async (
   req: Request<{}, {}, {}, ExpenditureStatsQuery>,
   res: Response,
   next: NextFunction
@@ -175,7 +179,7 @@ export const createExpenditure = async (req: Request, res: Response, next: NextF
 
   const images = req.files as Express.Multer.File[];
   if (images.length) {
-    const folderPath = path.join("uploads", createdExpenditure.id.toString());
+    const folderPath = path.join(EXPENDITURES_FOLDER, createdExpenditure.id.toString());
     if (!fs.existsSync(folderPath)) {
       fs.mkdirSync(folderPath);
     }
@@ -275,7 +279,7 @@ export const updateExpenditure = async (req: Request, res: Response, next: NextF
 
   const images = req.files as Express.Multer.File[];
   if (images.length) {
-    const folderPath = path.join("uploads", userExpenditure.id.toString());
+    const folderPath = path.join(EXPENDITURES_FOLDER, userExpenditure.id.toString());
     if (!fs.existsSync(folderPath)) {
       fs.mkdirSync(folderPath);
     }
@@ -312,7 +316,7 @@ export const deleteExpenditureImage = async (req: Request, res: Response, next: 
     return res.status(400).json({ message: "Invalid request!" });
   }
 
-  const folderPath = path.join("uploads", expenditureImage.expenditure.id.toString());
+  const folderPath = path.join(EXPENDITURES_FOLDER, expenditureImage.expenditure.id.toString());
   const filePath = path.join(folderPath, expenditureImage.path);
 
   if (fs.existsSync(filePath)) {
@@ -322,4 +326,35 @@ export const deleteExpenditureImage = async (req: Request, res: Response, next: 
   await expenditureImageRepository.remove(expenditureImage);
 
   return res.status(204).json({ message: "Expenditure image deleted" });
+};
+
+export const createExpenditureQueue = async (req: Request, res: Response, next: NextFunction) => {
+  const user = res.locals.loggedUser;
+
+  const images = req.files as Express.Multer.File[];
+  if (images.length) {
+    const expenditureQueue = new ExpenditureQueue();
+
+    expenditureQueue.user = user;
+    expenditureQueue.status = "pending";
+    expenditureQueue.images = [];
+
+    for (const image of images) {
+      const imageHash = randomHash(6);
+      const imageName = `${user.id}_${imageHash}.${image.originalname.split(".").pop()}`;
+
+      fs.writeFileSync(path.join(EXPENDITURE_QUEUE_FOLDER, imageName), image.buffer);
+
+      const expenditureQueueImage = new ExpenditureQueueImage();
+
+      expenditureQueueImage.expenditureQueue = expenditureQueue;
+      expenditureQueueImage.filename = imageName;
+
+      expenditureQueue.images.push(expenditureQueueImage);
+    }
+
+    expenditureQueueRespository.save(expenditureQueue);
+  }
+
+  return res.status(201).json({ message: "Expenditure queue created!" });
 };

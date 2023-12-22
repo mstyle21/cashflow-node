@@ -4,8 +4,9 @@ import auth from "../middleware/auth";
 import multer from "multer";
 import {
   createExpenditure,
+  createExpenditureQueue,
   deleteExpenditureImage,
-  getExpenditureStats,
+  getUserExpenditureStats,
   getUserExpenditures,
   updateExpenditure,
 } from "../controllers/expenditure.controller";
@@ -22,11 +23,11 @@ const upload = multer({ storage: storage, fileFilter: filter });
 
 const router = express.Router();
 
-router.get("/stats", auth, getExpenditureStats);
-
 router.get("/", auth, getUserExpenditures);
+router.get("/stats", auth, getUserExpenditureStats);
 
 router.post("/", auth, upload.array("images"), createExpenditure);
+router.post("/queue", auth, upload.array("images"), createExpenditureQueue);
 
 router.put("/:expenditureId", auth, upload.array("images"), updateExpenditure);
 

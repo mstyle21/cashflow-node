@@ -19,7 +19,9 @@ export class ExpenditureQueue {
   price: string;
   @Column()
   company: string;
-  @OneToMany(() => ExpenditureQueueImage, (expenditureQueueImage) => expenditureQueueImage.expenditureQueue)
+  @OneToMany(() => ExpenditureQueueImage, (expenditureQueueImage) => expenditureQueueImage.expenditureQueue, {
+    cascade: true,
+  })
   images: ExpenditureQueueImage[];
   @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP", select: false })
   created: Date;
