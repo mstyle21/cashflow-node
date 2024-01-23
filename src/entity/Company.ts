@@ -7,7 +7,7 @@ export class Company {
   id: number;
   @Column({ type: "text" })
   name: string;
-  @Column({ type: "longtext" })
+  @Column({ type: "longtext", default: null })
   keywords: string;
   @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP", select: false })
   created: Date;
